@@ -15,9 +15,11 @@ describe("spl-token", () => {
   anchor.setProvider(provider);
   const program = anchor.workspace.SplToken as Program<SplToken>;
   const payer = anchor.web3.Keypair.generate();
+  const anotherWallet = anchor.web3.Keypair.generate(); // newly created another wallet
 
   before("Add sols to wallet ", async () => {
     await addSols(provider, payer.publicKey); // add some sols before calling test cases
+    await addSols(provider, anotherWallet.publicKey); // add sols to another wallet
   });
 
   it("Spl token is initialized!", async () => {
@@ -73,6 +75,45 @@ describe("spl-token", () => {
       .rpc();
 
     console.log("Your transaction signature", tx);
+  });
+
+  it("should transfer 1 token from payer_mint_ata to another_mint_ata", async () => {
+    try {
+      const [splTokenMint, _1] = await findSplTokenMintAddress();
+
+      const [vaultMint, _2] = await findVaultAddress();
+
+      const [payerMintAta, _3] = await findAssociatedTokenAccount(
+        payer.publicKey,
+        splTokenMint
+      );
+
+      const [anotherMintAta, _4] = await findAssociatedTokenAccount(
+        anotherWallet.publicKey,
+        splTokenMint
+      );
+
+      const tx = await program.methods
+        .transferTokenToAnother()
+        .accounts({
+          splTokenMint: splTokenMint,
+          vault: vaultMint,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          payerMintAta: payerMintAta,
+          payer: payer.publicKey,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          anotherMintAta: anotherMintAta,
+          anotherAccount: anotherWallet.publicKey,
+        })
+        .signers([payer])
+        .rpc();
+
+      console.log("Your transaction signature", tx);
+    } catch (err) {
+      console.log(err);
+    }
   });
 });
 
