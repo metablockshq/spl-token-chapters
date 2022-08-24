@@ -179,6 +179,38 @@ describe("spl-token", () => {
       console.log(err);
     }
   });
+
+  it("should burn a token of payer wallet ", async () => {
+    try {
+      const [splTokenMint, _1] = await findSplTokenMintAddress();
+
+      const [vaultMint, _2] = await findVaultAddress();
+
+      const [payerMintAta, _3] = await findAssociatedTokenAccount(
+        payer.publicKey,
+        splTokenMint
+      );
+
+      const tx = await program.methods
+        .burnToken()
+        .accounts({
+          splTokenMint: splTokenMint,
+          vault: vaultMint,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          payerMintAta: payerMintAta,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          payer: payer.publicKey,
+        })
+        .signers([payer])
+        .rpc();
+
+      console.log("Your transaction signature", tx);
+    } catch (err) {
+      console.log(err);
+    }
+  });
 });
 
 // pda for spl-token-mint account
