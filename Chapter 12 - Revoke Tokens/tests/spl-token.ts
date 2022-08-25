@@ -97,9 +97,38 @@ describe("spl-token", () => {
           systemProgram: SystemProgram.programId,
           payerMintAta: payerMintAta,
           payer: payer.publicKey,
-          anotherAuthority: anotherWallet.publicKey,
         })
-        .signers([payer, anotherWallet])
+        .signers([payer])
+        .rpc();
+
+      console.log("Your transaction signature", tx);
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  it("should revoke approved tokens", async () => {
+    try {
+      const [splTokenMint, _1] = await findSplTokenMintAddress();
+
+      const [vaultMint, _2] = await findVaultAddress();
+
+      const [payerMintAta, _3] = await findAssociatedTokenAccount(
+        payer.publicKey,
+        splTokenMint
+      );
+
+      const tx = await program.methods
+        .revokeTokens()
+        .accounts({
+          splTokenMint: splTokenMint,
+          vault: vaultMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          payerMintAta: payerMintAta,
+          payer: payer.publicKey,
+        })
+        .signers([payer])
         .rpc();
 
       console.log("Your transaction signature", tx);

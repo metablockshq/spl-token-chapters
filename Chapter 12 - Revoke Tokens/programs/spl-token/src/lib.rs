@@ -44,6 +44,18 @@ pub mod spl_token {
         token::approve(cpi_context, 5)?;
         Ok(())
     }
+
+    pub fn revoke_tokens(ctx: Context<RevokeTokens>) -> Result<()> {
+        let cpi_context = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::Revoke {
+                authority: ctx.accounts.payer.to_account_info(),
+                source: ctx.accounts.payer_mint_ata.to_account_info(),
+            },
+        );
+        token::revoke(cpi_context)?;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -166,4 +178,37 @@ pub struct ApptoveTokens<'info> {
     pub token_program: Program<'info, Token>,   // ---> 6
 
     pub another_authority: Signer<'info>, // ---> 7
+}
+
+// Revoke approved token account
+#[derive(Accounts)]
+pub struct RevokeTokens<'info> {
+    #[account(
+         seeds = [
+            b"spl-token-mint".as_ref(),
+         ],
+        bump = vault.spl_token_mint_bump,
+    )]
+    pub spl_token_mint: Account<'info, Mint>, // ---> 1
+
+    #[account(
+        seeds = [
+            b"vault"
+        ],
+        bump = vault.bump, // --> 2
+    )]
+    pub vault: Account<'info, Vault>,
+
+    #[account(
+        mut,
+        associated_token::mint = spl_token_mint,
+        associated_token::authority = payer
+    )]
+    pub payer_mint_ata: Box<Account<'info, TokenAccount>>, // --> 3
+
+    #[account(mut)]
+    pub payer: Signer<'info>, // ---> 4
+
+    pub system_program: Program<'info, System>, // ---> 5
+    pub token_program: Program<'info, Token>,   // ---> 6
 }
