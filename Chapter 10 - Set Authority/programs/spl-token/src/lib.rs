@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::spl_token::instruction::AuthorityType;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{self, Burn, FreezeAccount, Mint, ThawAccount, Token, TokenAccount},
+    token::{self, Mint, Token, TokenAccount},
 };
 declare_id!("29iiLtNregFkwH4n4K95GrKYcGUGC3F6D5thPE2jWQQs");
 
@@ -29,6 +30,70 @@ pub mod spl_token {
             },
         );
         token::mint_to(cpi_context, 10)?; // we are minting 10 tokens
+        Ok(())
+    }
+
+    pub fn set_mint_authority(ctx: Context<SetMintTokenAuthority>) -> Result<()> {
+        let cpi_context = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::SetAuthority {
+                current_authority: ctx.accounts.payer.to_account_info(),
+                account_or_mint: ctx.accounts.spl_token_mint.to_account_info(),
+            },
+        );
+        token::set_authority(
+            cpi_context,
+            AuthorityType::MintTokens,
+            Some(ctx.accounts.another_authority.key()),
+        )?;
+        Ok(())
+    }
+
+    pub fn set_freeze_account_authority(ctx: Context<SetFreezeAccountAuthority>) -> Result<()> {
+        let cpi_context = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::SetAuthority {
+                current_authority: ctx.accounts.payer.to_account_info(),
+                account_or_mint: ctx.accounts.spl_token_mint.to_account_info(),
+            },
+        );
+        token::set_authority(
+            cpi_context,
+            AuthorityType::FreezeAccount,
+            Some(ctx.accounts.another_authority.key()),
+        )?;
+        Ok(())
+    }
+
+    pub fn set_account_owner_authority(ctx: Context<SetAccountOwnerAuthority>) -> Result<()> {
+        let cpi_context = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::SetAuthority {
+                current_authority: ctx.accounts.payer.to_account_info(),
+                account_or_mint: ctx.accounts.payer_mint_ata.to_account_info(),
+            },
+        );
+        token::set_authority(
+            cpi_context,
+            AuthorityType::AccountOwner,
+            Some(ctx.accounts.another_authority.key()),
+        )?;
+        Ok(())
+    }
+
+    pub fn set_close_account_authority(ctx: Context<SetCloseAccountAuthority>) -> Result<()> {
+        let cpi_context = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            token::SetAuthority {
+                current_authority: ctx.accounts.another_authority.to_account_info(),
+                account_or_mint: ctx.accounts.another_mint_ata.to_account_info(),
+            },
+        );
+        token::set_authority(
+            cpi_context,
+            AuthorityType::CloseAccount,
+            Some(ctx.accounts.payer.key()),
+        )?;
         Ok(())
     }
 }
@@ -118,4 +183,141 @@ pub struct TransferMint<'info> {
     pub rent: Sysvar<'info, Rent>, // ---> 7
 
     pub associated_token_program: Program<'info, AssociatedToken>, // ---> 8
+}
+
+// Set Mint Token Authority context
+#[derive(Accounts)]
+pub struct SetMintTokenAuthority<'info> {
+    #[account(
+        mut,
+         seeds = [
+            b"spl-token-mint".as_ref(),
+         ],
+        bump = vault.spl_token_mint_bump,
+    )]
+    pub spl_token_mint: Account<'info, Mint>, // ---> 1
+
+    #[account(
+        seeds = [
+            b"vault"
+        ],
+        bump = vault.bump, // --> 2
+    )]
+    pub vault: Account<'info, Vault>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>, // ---> 3
+
+    pub another_authority: Signer<'info>, // ---> 4
+
+    pub system_program: Program<'info, System>, // ---> 5
+    pub token_program: Program<'info, Token>,   // ---> 6
+}
+
+// Set Freeze Account Authority context
+#[derive(Accounts)]
+pub struct SetFreezeAccountAuthority<'info> {
+    #[account(
+        mut,
+         seeds = [
+            b"spl-token-mint".as_ref(),
+         ],
+        bump = vault.spl_token_mint_bump,
+    )]
+    pub spl_token_mint: Account<'info, Mint>, // ---> 1
+
+    #[account(
+        seeds = [
+            b"vault"
+        ],
+        bump = vault.bump, // --> 2
+    )]
+    pub vault: Account<'info, Vault>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>, // ---> 3
+
+    pub another_authority: Signer<'info>, // ---> 4
+
+    pub system_program: Program<'info, System>, // ---> 5
+    pub token_program: Program<'info, Token>,   // ---> 6
+}
+
+// Set Account Owner Authority context
+#[derive(Accounts)]
+pub struct SetAccountOwnerAuthority<'info> {
+    #[account(
+        mut,
+         seeds = [
+            b"spl-token-mint".as_ref(),
+         ],
+        bump = vault.spl_token_mint_bump,
+    )]
+    pub spl_token_mint: Account<'info, Mint>, // ---> 1
+
+    #[account(
+        seeds = [
+            b"vault"
+        ],
+        bump = vault.bump, // --> 2
+    )]
+    pub vault: Account<'info, Vault>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>, // ---> 3
+
+    #[account(
+        mut,
+        associated_token::mint = spl_token_mint,
+        associated_token::authority = payer
+    )]
+    pub payer_mint_ata: Account<'info, TokenAccount>, // ---> 4
+
+    pub another_authority: Signer<'info>, // ---> 5
+
+    pub system_program: Program<'info, System>, // ---> 6
+    pub token_program: Program<'info, Token>,   // ---> 7
+}
+
+
+// Set Close Account Authority context
+#[derive(Accounts)]
+pub struct SetCloseAccountAuthority<'info> {
+    #[account(
+        mut,
+         seeds = [
+            b"spl-token-mint".as_ref(),
+         ],
+        bump = vault.spl_token_mint_bump,
+    )]
+    pub spl_token_mint: Account<'info, Mint>, // ---> 1
+
+    #[account(
+        seeds = [
+            b"vault"
+        ],
+        bump = vault.bump, // --> 2
+    )]
+    pub vault: Account<'info, Vault>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>, // ---> 3
+
+    #[account(
+        init,
+        associated_token::mint = spl_token_mint,
+        associated_token::authority = another_authority,
+        payer = payer
+       
+    )]
+    pub another_mint_ata: Account<'info, TokenAccount>, // ---> 4
+
+    pub another_authority: Signer<'info>, // ---> 5
+
+    pub system_program: Program<'info, System>, // ---> 6
+    pub token_program: Program<'info, Token>,   // ---> 7
+
+    pub associated_token_program : Program<'info, AssociatedToken>, // ---> 8,
+
+    pub rent: Sysvar<'info, Rent>, // ---> 9
 }

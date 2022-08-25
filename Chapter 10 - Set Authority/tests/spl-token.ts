@@ -77,7 +77,52 @@ describe("spl-token", () => {
     console.log("Your transaction signature", tx);
   });
 
-  it("should transfer 1 token from payer_mint_ata to another_mint_ata", async () => {
+  //set mint authority to another wallet test
+  it("should set mint authority to anotherWallet", async () => {
+    const [splTokenMint, _1] = await findSplTokenMintAddress();
+
+    const [vaultMint, _2] = await findVaultAddress();
+
+    const tx = await program.methods
+      .setMintAuthority()
+      .accounts({
+        splTokenMint: splTokenMint,
+        vault: vaultMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        anotherAuthority: anotherWallet.publicKey,
+        payer: payer.publicKey,
+      })
+      .signers([payer, anotherWallet])
+      .rpc();
+
+    console.log("Your transaction signature", tx);
+  });
+
+  //set freeze account authority to another wallet test
+  it("should set freeze account authority to anotherWallet", async () => {
+    const [splTokenMint, _1] = await findSplTokenMintAddress();
+
+    const [vaultMint, _2] = await findVaultAddress();
+
+    const tx = await program.methods
+      .setFreezeAccountAuthority()
+      .accounts({
+        splTokenMint: splTokenMint,
+        vault: vaultMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        anotherAuthority: anotherWallet.publicKey,
+        payer: payer.publicKey,
+      })
+      .signers([payer, anotherWallet])
+      .rpc();
+
+    console.log("Your transaction signature", tx);
+  });
+
+  //set account owner to another wallet test
+  it("should set account owner of payer_mint_ata to another wallet ", async () => {
     try {
       const [splTokenMint, _1] = await findSplTokenMintAddress();
 
@@ -87,123 +132,50 @@ describe("spl-token", () => {
         payer.publicKey,
         splTokenMint
       );
+      const tx = await program.methods
+        .setAccountOwnerAuthority()
+        .accounts({
+          splTokenMint: splTokenMint,
+          vault: vaultMint,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          payerMintAta: payerMintAta,
+          payer: payer.publicKey,
+          anotherAuthority: anotherWallet.publicKey,
+        })
+        .signers([payer, anotherWallet])
+        .rpc();
 
-      const [anotherMintAta, _4] = await findAssociatedTokenAccount(
+      console.log("Your transaction signature", tx);
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  it("should set close account authority of another_mint_ata to payer wallet", async () => {
+    try {
+      const [splTokenMint, _1] = await findSplTokenMintAddress();
+
+      const [vaultMint, _2] = await findVaultAddress();
+
+      const [another_mint_ata, _3] = await findAssociatedTokenAccount(
         anotherWallet.publicKey,
         splTokenMint
       );
-
       const tx = await program.methods
-        .transferTokenToAnother()
+        .setCloseAccountAuthority()
         .accounts({
           splTokenMint: splTokenMint,
           vault: vaultMint,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          payerMintAta: payerMintAta,
-          payer: payer.publicKey,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          anotherMintAta: anotherMintAta,
-          anotherAccount: anotherWallet.publicKey,
-        })
-        .signers([payer])
-        .rpc();
-
-      console.log("Your transaction signature", tx);
-    } catch (err) {
-      console.log(err);
-    }
-  });
-
-  it("should freeze token account of payer wallet ", async () => {
-    try {
-      const [splTokenMint, _1] = await findSplTokenMintAddress();
-
-      const [vaultMint, _2] = await findVaultAddress();
-
-      const [payerMintAta, _3] = await findAssociatedTokenAccount(
-        payer.publicKey,
-        splTokenMint
-      );
-
-      const tx = await program.methods
-        .freezeTokenAccount()
-        .accounts({
-          splTokenMint: splTokenMint,
-          vault: vaultMint,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
-          payerMintAta: payerMintAta,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          anotherMintAta: another_mint_ata,
           payer: payer.publicKey,
-        })
-        .signers([payer])
-        .rpc();
-
-      console.log("Your transaction signature", tx);
-    } catch (err) {
-      console.log(err);
-    }
-  });
-
-  it("should unfreeze token account of payer wallet ", async () => {
-    try {
-      const [splTokenMint, _1] = await findSplTokenMintAddress();
-
-      const [vaultMint, _2] = await findVaultAddress();
-
-      const [payerMintAta, _3] = await findAssociatedTokenAccount(
-        payer.publicKey,
-        splTokenMint
-      );
-
-      const tx = await program.methods
-        .unfreezeTokenAccount()
-        .accounts({
-          splTokenMint: splTokenMint,
-          vault: vaultMint,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          payerMintAta: payerMintAta,
+          anotherAuthority: anotherWallet.publicKey,
           rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          payer: payer.publicKey,
         })
-        .signers([payer])
-        .rpc();
-
-      console.log("Your transaction signature", tx);
-    } catch (err) {
-      console.log(err);
-    }
-  });
-
-  it("should burn a token of payer wallet ", async () => {
-    try {
-      const [splTokenMint, _1] = await findSplTokenMintAddress();
-
-      const [vaultMint, _2] = await findVaultAddress();
-
-      const [payerMintAta, _3] = await findAssociatedTokenAccount(
-        payer.publicKey,
-        splTokenMint
-      );
-
-      const tx = await program.methods
-        .burnToken()
-        .accounts({
-          splTokenMint: splTokenMint,
-          vault: vaultMint,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          payerMintAta: payerMintAta,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          payer: payer.publicKey,
-        })
-        .signers([payer])
+        .signers([payer, anotherWallet])
         .rpc();
 
       console.log("Your transaction signature", tx);
