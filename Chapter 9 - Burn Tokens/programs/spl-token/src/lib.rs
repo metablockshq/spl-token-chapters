@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{self, Burn, FreezeAccount, Mint, ThawAccount, Token, TokenAccount},
+    token::{self, Burn, Mint, Token, TokenAccount},
 };
 declare_id!("29iiLtNregFkwH4n4K95GrKYcGUGC3F6D5thPE2jWQQs");
 
@@ -29,45 +29,6 @@ pub mod spl_token {
             },
         );
         token::mint_to(cpi_context, 10)?; // we are minting 10 tokens
-        Ok(())
-    }
-
-    pub fn transfer_token_to_another(ctx: Context<TransferTokenToAnother>) -> Result<()> {
-        let cpi_context = CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            token::Transfer {
-                from: ctx.accounts.payer_mint_ata.to_account_info(),
-                to: ctx.accounts.another_mint_ata.to_account_info(),
-                authority: ctx.accounts.payer.to_account_info(),
-            },
-        );
-        token::transfer(cpi_context, 1)?;
-        Ok(())
-    }
-
-    pub fn freeze_token_account(ctx: Context<FreezeTokenAccount>) -> Result<()> {
-        let cpi_context = CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            FreezeAccount {
-                account: ctx.accounts.payer_mint_ata.to_account_info(),
-                mint: ctx.accounts.spl_token_mint.to_account_info(),
-                authority: ctx.accounts.payer.to_account_info(),
-            },
-        );
-        token::freeze_account(cpi_context)?;
-        Ok(())
-    }
-
-    pub fn unfreeze_token_account(ctx: Context<UnfreezeTokenAccount>) -> Result<()> {
-        let cpi_context = CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            ThawAccount {
-                account: ctx.accounts.payer_mint_ata.to_account_info(),
-                mint: ctx.accounts.spl_token_mint.to_account_info(),
-                authority: ctx.accounts.payer.to_account_info(),
-            },
-        );
-        token::thaw_account(cpi_context)?;
         Ok(())
     }
 
@@ -163,130 +124,6 @@ pub struct TransferMint<'info> {
 
     #[account(mut)]
     pub payer: Signer<'info>, // ---> 4
-
-    pub system_program: Program<'info, System>, // ---> 5
-    pub token_program: Program<'info, Token>,   // ---> 6
-
-    pub rent: Sysvar<'info, Rent>, // ---> 7
-
-    pub associated_token_program: Program<'info, AssociatedToken>, // ---> 8
-}
-
-// Transfer token to another account
-#[derive(Accounts)]
-pub struct TransferTokenToAnother<'info> {
-    #[account(
-         seeds = [
-            b"spl-token-mint".as_ref(),
-         ],
-        bump = vault.spl_token_mint_bump,
-    )]
-    pub spl_token_mint: Account<'info, Mint>, // ---> 1
-
-    #[account(
-        seeds = [
-            b"vault"
-        ],
-        bump = vault.bump, // --> 2
-    )]
-    pub vault: Account<'info, Vault>,
-
-    #[account(
-        mut,
-        associated_token::mint = spl_token_mint,
-        associated_token::authority = payer
-    )]
-    pub payer_mint_ata: Box<Account<'info, TokenAccount>>, // --> 3
-
-    #[account(mut)]
-    pub payer: Signer<'info>, // ---> 4
-
-    pub system_program: Program<'info, System>, // ---> 5
-    pub token_program: Program<'info, Token>,   // ---> 6
-
-    pub rent: Sysvar<'info, Rent>, // ---> 7
-
-    pub associated_token_program: Program<'info, AssociatedToken>, // ---> 8
-
-    #[account(
-        init,
-        payer = payer,
-        associated_token::mint = spl_token_mint,
-        associated_token::authority = another_account
-    )]
-    pub another_mint_ata: Box<Account<'info, TokenAccount>>, // --> 9
-
-    /// CHECK : We just pass the account info for the demonstration purpose. Ideally this is either signer or trusted account
-    pub another_account: AccountInfo<'info>, // ---> 10
-}
-
-// Freeze token account
-#[derive(Accounts)]
-pub struct FreezeTokenAccount<'info> {
-    #[account(
-        mut,
-         seeds = [
-            b"spl-token-mint".as_ref(),
-         ],
-        bump = vault.spl_token_mint_bump,
-    )]
-    pub spl_token_mint: Account<'info, Mint>, // ---> 1
-
-    #[account(
-        seeds = [
-            b"vault"
-        ],
-        bump = vault.bump, // --> 2
-    )]
-    pub vault: Account<'info, Vault>,
-
-    #[account(mut)]
-    pub payer: Signer<'info>, // ---> 3
-
-    #[account(
-        mut,
-        associated_token::mint = spl_token_mint,
-        associated_token::authority = payer
-    )]
-    pub payer_mint_ata: Box<Account<'info, TokenAccount>>, // --> 4
-
-    pub system_program: Program<'info, System>, // ---> 5
-    pub token_program: Program<'info, Token>,   // ---> 6
-
-    pub rent: Sysvar<'info, Rent>, // ---> 7
-
-    pub associated_token_program: Program<'info, AssociatedToken>, // ---> 8
-}
-
-// Unfreeze token account
-#[derive(Accounts)]
-pub struct UnfreezeTokenAccount<'info> {
-    #[account(
-        mut,
-         seeds = [
-            b"spl-token-mint".as_ref(),
-         ],
-        bump = vault.spl_token_mint_bump,
-    )]
-    pub spl_token_mint: Account<'info, Mint>, // ---> 1
-
-    #[account(
-        seeds = [
-            b"vault"
-        ],
-        bump = vault.bump, // --> 2
-    )]
-    pub vault: Account<'info, Vault>,
-
-    #[account(mut)]
-    pub payer: Signer<'info>, // ---> 3
-
-    #[account(
-        mut,
-        associated_token::mint = spl_token_mint,
-        associated_token::authority = payer
-    )]
-    pub payer_mint_ata: Box<Account<'info, TokenAccount>>, // --> 4
 
     pub system_program: Program<'info, System>, // ---> 5
     pub token_program: Program<'info, Token>,   // ---> 6
